@@ -73,7 +73,8 @@ public abstract class AbstractGameObject {
 				velocity.y = Math.min(velocity.y + friction.y * deltaTime, 0);
 			}
 		}
-		// Apply accelerationvelocity.y += acceleration.y * deltaTime;
+		// Apply acceleration
+		velocity.y += acceleration.y * deltaTime;
 		// Make sure the object's velocity does not exceed the
 		// positive or negative terminal velocity
 		velocity.y = MathUtils.clamp(velocity.y, -terminalVelocity.y, terminalVelocity.y);
