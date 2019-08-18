@@ -28,11 +28,11 @@ public class WorldController extends InputAdapter {
 	public Level level;
 	public int lives;
 	public int score;
-
 	private void initLevel()
 	{
 		score = 0;
 		level = new Level(Constants.LEVEL_01);
+		cameraHelper.setTarget(level.bunnyHead);
 	}
 
 	public WorldController () { init(); }
@@ -61,6 +61,7 @@ public class WorldController extends InputAdapter {
 
 	public void update (float deltaTime) {
 		handleDebugInput(deltaTime);
+		handleInputGame(deltaTime);
 		cameraHelper.update(deltaTime);
 		level.update(deltaTime);
 		testCollisions();
@@ -69,24 +70,27 @@ public class WorldController extends InputAdapter {
 	private void handleDebugInput (float deltaTime) {
 		if (Gdx.app.getType() != Application.ApplicationType.Desktop) return;
 
+		if (!cameraHelper.hasTarget(level.bunnyHead)) {
+			// Camera Controls (move)
+			float camMoveSpeed = 5 * deltaTime;
+			float camMoveSpeedAccelerationFactor = 5;
+			if (Gdx.input.isKeyPressed(Keys.SHIFT_LEFT))
+				camMoveSpeed *= camMoveSpeedAccelerationFactor;
+			if (Gdx.input.isKeyPressed(Keys.LEFT)) moveCamera(-camMoveSpeed, 0);
+			if (Gdx.input.isKeyPressed(Keys.RIGHT)) moveCamera(camMoveSpeed, 0);
+			if (Gdx.input.isKeyPressed(Keys.UP)) moveCamera(0, camMoveSpeed);
+			if (Gdx.input.isKeyPressed(Keys.DOWN)) moveCamera(0, -camMoveSpeed);
+			if (Gdx.input.isKeyPressed(Keys.BACKSPACE)) cameraHelper.setPosition(0, 0);
 
-		// Camera Controls (move)
-		float camMoveSpeed = 5 * deltaTime;
-		float camMoveSpeedAccelerationFactor = 5;
-		if (Gdx.input.isKeyPressed(Keys.SHIFT_LEFT)) camMoveSpeed *= camMoveSpeedAccelerationFactor;
-		if (Gdx.input.isKeyPressed(Keys.LEFT)) moveCamera(-camMoveSpeed, 0);
-		if (Gdx.input.isKeyPressed(Keys.RIGHT)) moveCamera(camMoveSpeed, 0);
-		if (Gdx.input.isKeyPressed(Keys.UP)) moveCamera(0, camMoveSpeed);
-		if (Gdx.input.isKeyPressed(Keys.DOWN)) moveCamera(0, -camMoveSpeed);
-		if (Gdx.input.isKeyPressed(Keys.BACKSPACE)) cameraHelper.setPosition(0, 0);
-
-		// Camera Controls (zoom)
-		float camZoomSpeed = 1 * deltaTime;
-		float camZoomSpeedAccelerationFactor = 5;
-		if (Gdx.input.isKeyPressed(Keys.SHIFT_LEFT)) camZoomSpeed *= camZoomSpeedAccelerationFactor;
-		if (Gdx.input.isKeyPressed(Keys.COMMA)) cameraHelper.addZoom(camZoomSpeed);
-		if (Gdx.input.isKeyPressed(Keys.PERIOD)) cameraHelper.addZoom(-camZoomSpeed);
-		if (Gdx.input.isKeyPressed(Keys.SLASH)) cameraHelper.setZoom(1);
+			// Camera Controls (zoom)
+			float camZoomSpeed = 1 * deltaTime;
+			float camZoomSpeedAccelerationFactor = 5;
+			if (Gdx.input.isKeyPressed(Keys.SHIFT_LEFT))
+				camZoomSpeed *= camZoomSpeedAccelerationFactor;
+			if (Gdx.input.isKeyPressed(Keys.COMMA)) cameraHelper.addZoom(camZoomSpeed);
+			if (Gdx.input.isKeyPressed(Keys.PERIOD)) cameraHelper.addZoom(-camZoomSpeed);
+			if (Gdx.input.isKeyPressed(Keys.SLASH)) cameraHelper.setZoom(1);
+		}
 	}
 
 	private void moveCamera (float x, float y) {
@@ -107,7 +111,10 @@ public class WorldController extends InputAdapter {
 
 
 		// Toggle camera follow
-
+		else if (keycode == Keys.ENTER) {
+			cameraHelper.setTarget(cameraHelper.hasTarget() ? null: level.bunnyHead);
+			Gdx.app.debug(TAG, "Camera follow enabled: " + cameraHelper.hasTarget());
+		}
 		return false;
 	}
 	// Rectangles for collision detection
@@ -182,6 +189,30 @@ public class WorldController extends InputAdapter {
 			if (!r1.overlaps(r2)) continue;
 			onCollisionBunnyWithFeather(feather);
 			break;
+		}
+	}
+	private void handleInputGame (float deltaTime) {
+		if (cameraHelper.hasTarget(level.bunnyHead)) {
+			// Player Movement
+			if (Gdx.input.isKeyPressed(Keys.LEFT)) {
+				level.bunnyHead.velocity.x = -level.bunnyHead.terminalVelocity.x;
+			}
+			else if (Gdx.input.isKeyPressed(Keys.RIGHT)) {
+				level.bunnyHead.velocity.x = level.bunnyHead.terminalVelocity.x;
+			}
+			else {
+			// Execute auto-forward movement on non-desktop platform
+				if (Gdx.app.getType() != Application.ApplicationType.Desktop) {
+					level.bunnyHead.velocity.x = level.bunnyHead.terminalVelocity.x;
+				}
+			}
+		}
+		// Bunny Jump
+		if (Gdx.input.isTouched() || Gdx.input.isKeyPressed(Keys.SPACE)) {
+ 			level.bunnyHead.setJumping(true);
+		}
+		else {
+			level.bunnyHead.setJumping(false);
 		}
 	}
 }
